@@ -5,6 +5,7 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 import java.nio.FloatBuffer;
 
@@ -54,7 +55,7 @@ public abstract class Program {
 
     public abstract void loadAllUniforms();
 
-    protected int getUniformLocation(String name) {
+    public int getUniformLocation(String name) {
         return GL20.glGetUniformLocation(ID, name);
     }
 
@@ -68,6 +69,10 @@ public abstract class Program {
 
     public void loadVec3(int location, Vector3f value) {
         GL20.glUniform3f(location, value.x, value.y, value.z);
+    }
+
+    public void loadVec4(int location, Vector4f value) {
+        GL20.glUniform4f(location, value.x, value.y, value.z, value.w);
     }
 
     public void loadBoolean(int location, boolean value) {

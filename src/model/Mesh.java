@@ -1,16 +1,19 @@
 package model;
 
 import buffers.VAO;
+import light.AmbientLight;
+import light.LightList;
+import light.PointLight;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 import rendering.Camera;
 import rendering.Renderer;
-import shaders.ColorShader;
-import shaders.Program;
-import shaders.ShaderList;
-import shaders.TexturedShader;
+import shaders.*;
 import util.FileLoader;
+
+import java.util.ArrayList;
 
 
 public class Mesh {
@@ -19,20 +22,31 @@ public class Mesh {
     private Matrix4f transform, mvp;
     private Vector3f position, scale, rotation;
     private int textureID;
-    private boolean hasUV;
+    private boolean hasUV, hasNormals;
+    private Material material;
 
     private static final float FOV = 70;
     private static final float NEAR_PLANE = 0.1f;
     private static final float FAR_PLANE = 1000f;
 
-    public Mesh(VAO vao, boolean hasUV) {
+    public Mesh(VAO vao, boolean hasUV, boolean hasNormals) {
 
         this.vao = vao;
         this.hasUV = hasUV;
-        if (hasUV) {
+        this.hasNormals = hasNormals;
+        if (hasUV && hasNormals) {
+            this.shader = ShaderList.getShader(TexturedNormalShader.class);
+
+            this.material = new Material(new Vector4f(), new Vector4f(), new Vector4f(), 1, 1.0f);
+        } else if (hasUV) {
             this.shader = ShaderList.getShader(TexturedShader.class);
+            this.material = new Material(new Vector4f(), new Vector4f(), new Vector4f(), 1, 1.0f);
+        } else if (hasNormals) {
+            this.shader = ShaderList.getShader(ColorNormalShader.class);
+            this.material = new Material(new Vector4f(0.8f, 0.8f, 0, 1f), new Vector4f(0.8f, 0.8f, 0, 1f), new Vector4f(0.8f, 0.8f, 0, 1f), 0, 1.0f);
         } else {
             this.shader = ShaderList.getShader(ColorShader.class);
+            this.material = new Material(new Vector4f(), new Vector4f(), new Vector4f(), 0, 1.0f);
         }
 
         position = new Vector3f();
@@ -98,8 +112,21 @@ public class Mesh {
     }
 
     public void render(Renderer renderer, Camera camera) {
-        if (hasUV) {
-            ((TexturedShader)shader).addUniforms(transform, mvp, camera.getView(), textureID);
+        if (hasUV && hasNormals) {
+            ArrayList<AmbientLight> ambientLights = LightList.getLightsWithType(AmbientLight.class);
+            assert ambientLights.size() != 0;
+            ArrayList<PointLight> pointLights = LightList.getLightsWithType(PointLight.class);
+            assert pointLights.size() != 0;
+            ((TexturedNormalShader) shader).addUniforms(transform, mvp, camera.getView(), textureID, ambientLights.get(0), pointLights.get(0), material);
+        } else if (hasUV) {
+            ((TexturedShader) shader).addUniforms(transform, mvp, camera.getView(), textureID);
+        } else if (hasNormals) {
+
+            ArrayList<AmbientLight> ambientLights = LightList.getLightsWithType(AmbientLight.class);
+            assert ambientLights.size() != 0;
+            ArrayList<PointLight> pointLights = LightList.getLightsWithType(PointLight.class);
+            assert pointLights.size() != 0;
+            ((ColorNormalShader)shader).addUniforms(transform, mvp, camera.getView(), ambientLights.get(0), pointLights.get(0), material);
         } else {
             ((ColorShader)shader).addUniforms(transform, mvp, camera.getView());
         }

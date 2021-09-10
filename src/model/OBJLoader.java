@@ -13,7 +13,10 @@ public class OBJLoader {
         ArrayList<int[]> faces = new ArrayList<>();
         ArrayList<int[]> uvPositions = new ArrayList<>();
         ArrayList<float[]> uvCoords = new ArrayList<>();
+        ArrayList<float[]> normals = new ArrayList<>();
+        ArrayList<int[]> normalPositions = new ArrayList<>();
         boolean hasUv = true;
+        boolean hasNormals = true;
         try {
             BufferedReader reader = new BufferedReader(new FileReader(path));
             String line;
@@ -52,7 +55,20 @@ public class OBJLoader {
                             uvCoords.add(coord);
 
                         } else if (line.charAt(1) == 'n') {
-                            // TODO: add normals
+                            String[] values = line.split(" ");
+                            int idx = 0;
+                            for (String value : values) {
+                                if (value.length() == 0) {
+                                    values = removeItem(values, idx);
+                                }
+                                idx++;
+                            }
+                            float[] normal = {
+                                    Float.parseFloat(values[1]),
+                                    Float.parseFloat(values[2]),
+                                    Float.parseFloat(values[3])
+                            };
+                            normals.add(normal);
                         }
                     }
                     break;
@@ -67,6 +83,7 @@ public class OBJLoader {
                         }
                         int[] verts = new int[values.length - 1];
                         int[] uvPos = new int[values.length - 1];
+                        int[] normalPos = new int[values.length - 1];
                         for (int i = 0; i < values.length - 1; i++) {
 
                             verts[i] = Integer.parseInt(values[i + 1].split("/")[0]);
@@ -77,9 +94,17 @@ public class OBJLoader {
                                     uvPos[i] = Integer.parseInt(values[i + 1].split("/")[1]);
                                 }
                             }
+                            if (hasNormals) {
+                                if (values[i + 1].split("/").length < 3 || values[i + 1].split("/")[2].isEmpty()) {
+                                    hasNormals = false;
+                                } else {
+                                    normalPos[i] = Integer.parseInt(values[i + 1].split("/")[2]);
+                                }
+                            }
                         }
                         faces.add(verts);
                         uvPositions.add(uvPos);
+                        normalPositions.add(normalPos);
                     }
                     break;
                     default: break;
@@ -147,7 +172,7 @@ public class OBJLoader {
             }
         }
         VAO vao = null;
-        if (hasUv) {
+        if (hasUv && hasNormals) {
             int totalUvPosSize = uvPositions.size() * 3;
 
 
@@ -163,10 +188,63 @@ public class OBJLoader {
 
             float[] uvs = sortUVCoords(facesArray, uvPosArray, uvCoords);
 
+            int totalNormalPosSize = normalPositions.size() * 3;
+
+            int[] normalPosArray = new int[totalNormalPosSize];
+            j = 0;
+
+            for (int[] normalPos : normalPositions) {
+                for (int norm : normalPos) {
+                    normalPosArray[j] = norm - 1;
+                    j++;
+                }
+            }
+            float[] norms = sortNormals(facesArray, normalPosArray, normals);
+
             vao = new VAO()
                     .addAttribArray(verts, 0, 3)
                     .addAttribArray(colors, 1, 4)
                     .addAttribArray(uvs, 2, 2)
+                    .addAttribArray(norms, 3, 3)
+                    .end(facesArray);
+        } else if (hasUv) {
+            int totalUvPosSize = uvPositions.size() * 3;
+
+
+            int[] uvPosArray = new int[totalUvPosSize];
+            j = 0;
+
+            for (int[] uvPos : uvPositions) {
+                for (int uv : uvPos) {
+                    uvPosArray[j] = uv - 1;
+                    j++;
+                }
+            }
+
+            float[] uvs = sortUVCoords(facesArray, uvPosArray, uvCoords);
+            vao = new VAO()
+                    .addAttribArray(verts, 0, 3)
+                    .addAttribArray(colors, 1, 4)
+                    .addAttribArray(uvs, 2, 2)
+                    .end(facesArray);
+        } else if (hasNormals) {
+            int totalNormalPosSize = normalPositions.size() * 3;
+
+            int[] normalPosArray = new int[totalNormalPosSize];
+            j = 0;
+
+            for (int[] normalPos : normalPositions) {
+                for (int norm : normalPos) {
+                    normalPosArray[j] = norm - 1;
+                    j++;
+                }
+            }
+            float[] norms = sortNormals(facesArray, normalPosArray, normals);
+
+            vao = new VAO()
+                    .addAttribArray(verts, 0, 3)
+                    .addAttribArray(colors, 1, 4)
+                    .addAttribArray(norms, 2, 3)
                     .end(facesArray);
         } else {
             vao = new VAO()
@@ -176,7 +254,7 @@ public class OBJLoader {
         }
 
 
-        return new Mesh(vao, hasUv);
+        return new Mesh(vao, hasUv, hasNormals);
     }
 
     private static String[] removeItem(String[] data, int index) {
@@ -188,7 +266,7 @@ public class OBJLoader {
     }
 
     private static float[] sortUVCoords(int[] faces, int[] uvPositions, ArrayList<float[]> uvs) {
-        float[] sortedUvs = new float[uvs.size() * 2];
+        float[] sortedUvs = new float[faces.length * 2];
         for (int i = 0; i < faces.length; i++) {
             int index = faces[i];
             sortedUvs[index * 2] = uvs.get(uvPositions[i])[0];
@@ -197,5 +275,17 @@ public class OBJLoader {
         }
 
         return sortedUvs;
+    }
+
+    private static float[] sortNormals(int[] faces, int[] normalPositions, ArrayList<float[]> normals) {
+        float[] sortedNormals = new float[faces.length * 3];
+        for (int i = 0; i < faces.length; i++) {
+            int index = faces[i];
+            sortedNormals[index * 3] = normals.get(normalPositions[i])[0];
+            sortedNormals[index * 3 + 1] = normals.get(normalPositions[i])[1];
+            sortedNormals[index * 3 + 2] = normals.get(normalPositions[i])[2];
+        }
+
+        return sortedNormals;
     }
 }

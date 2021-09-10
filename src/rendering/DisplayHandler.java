@@ -24,6 +24,8 @@ public class DisplayHandler {
         }
 
         GL11.glViewport(0, 0, WIDTH, HEIGHT);
+
+        //GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
         GL11.glEnable(GL11.GL_DEPTH_TEST);
     }
 

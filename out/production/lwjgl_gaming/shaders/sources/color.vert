@@ -11,6 +11,5 @@ uniform mat4 view;
 
 void main(void) {
     o_color = i_color;
-    gl_Position = vec4(pos, 1.0);
-    //gl_Position = mvp * view * transform * vec4(pos, 1.0);
+    gl_Position = mvp * view * transform * vec4(pos, 1.0);
 }

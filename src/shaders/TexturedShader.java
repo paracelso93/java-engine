@@ -3,6 +3,7 @@ package shaders;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.util.vector.Matrix4f;
+import shaders.uniforms.PointLightUniform;
 
 public class TexturedShader extends Program {
     private static final String vertexSource = "src/shaders/sources/shader.vert";
@@ -10,7 +11,7 @@ public class TexturedShader extends Program {
 
     private int transformLocation, mvpLocation, viewLocation;
     private Matrix4f transform, mvp, view;
-    int texture;
+    private int texture;
 
     public TexturedShader() {
         super(vertexSource, fragmentSource);
